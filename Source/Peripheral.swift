@@ -200,6 +200,14 @@ public class Peripheral {
         return manager.establishConnection(self, options: options)
     }
 
+    /// Cancels an active or pending local connection to a `Peripheral` after observable subscription. It is not guaranteed
+    /// that physical connection will be closed immediately as well and all pending commands will not be executed.
+    ///
+    /// - returns: `Single` which emits next event when peripheral successfully cancelled connection.
+    public func cancelConnection() -> Single<Peripheral> {
+        return manager.cancelConnection(self)
+    }
+
     // MARK: Services
 
     /// Triggers discover of specified services of peripheral. If the servicesUUIDs parameter is nil, all the available services of the

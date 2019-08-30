@@ -204,6 +204,28 @@ public class CentralManager: ManagerType {
         return ensure(.poweredOn, observable: observable)
     }
 
+    /// Cancels an active or pending local connection to a `Peripheral` after observable subscription. It is not guaranteed
+    /// that physical connection will be closed immediately as well and all pending commands will not be executed.
+    ///
+    /// - parameter peripheral: The `Peripheral` to which the `CentralManager` is either trying to
+    /// connect or has already connected.
+    /// - returns: `Single` which emits next event when peripheral successfully cancelled connection.
+    public func cancelConnection(_ peripheral: Peripheral) -> Single<Peripheral> {
+        let observable = Observable<(Peripheral, DisconnectionReason?)>.create { [weak self] observer in
+            guard let strongSelf = self else {
+                observer.onError(BluetoothError.destroyed)
+                return Disposables.create()
+            }
+            let disposable = strongSelf.observeDisconnect(for: peripheral).take(1).subscribe(observer)
+            strongSelf.connector.cancelConnection(with: peripheral)
+            return disposable
+        }
+
+        return ensure(.poweredOn, observable: observable)
+            .asSingle()
+            .map { $0.0 }
+    }
+
     // MARK: Retrieving Lists of Peripherals
 
     /// Returns list of the `Peripheral`s which are currently connected to the `CentralManager` and contain

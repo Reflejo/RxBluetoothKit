@@ -54,6 +54,20 @@ class Connector {
             }
     }
 
+    /// Cancels a connection with a given `Peripheral`.
+    /// For more information see `CentralManager.cancelConnection(with:)`
+    func cancelConnection(with peripheral: Peripheral) {
+        let isConnected = self.connectedBox.read { $0.contains(peripheral.identifier) }
+        if isConnected {
+            if self.centralManager.state == .poweredOn {
+                self.disconnectingBox.write { $0.insert(peripheral.identifier) }
+                self.centralManager.cancelPeripheralConnection(peripheral.peripheral)
+            }
+            self.connectedBox.write { $0.remove(peripheral.identifier) }
+        }
+    }
+
+
     fileprivate func createConnectionObservable(
         for peripheral: Peripheral,
         options: [String: Any]? = nil
@@ -98,18 +112,7 @@ class Connector {
             // object, and the peripheral device is successfully reconnected."
             strongSelf.centralManager.connect(peripheral.peripheral, options: options)
 
-            return Disposables.create { [weak self] in
-                guard let strongSelf = self else { return }
-                disposable.dispose()
-                let isConnected = strongSelf.connectedBox.read { $0.contains(peripheral.identifier) }
-                if isConnected {
-                    if strongSelf.centralManager.state == .poweredOn {
-                        strongSelf.disconnectingBox.write { $0.insert(peripheral.identifier) }
-                        strongSelf.centralManager.cancelPeripheralConnection(peripheral.peripheral)
-                    }
-                    strongSelf.connectedBox.write { $0.remove(peripheral.identifier) }
-                }
-            }
+            return Disposables.create { disposable.dispose() }
         }
     }
 
